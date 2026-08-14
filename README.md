@@ -44,23 +44,23 @@ graph TD
     classDef engine fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff,font-weight:bold;
     classDef output fill:#18181b,stroke:#3f3f46,stroke-width:2px,color:#fff,font-weight:bold;
 
-    subgraph Hardware_Layer ["📷 Hardware Layer"]
+    subgraph Hardware_Layer ["Hardware Layer"]
         ESP["ESP32-CAM (OV2640)<br/>• Hard Reset PWDN<br/>• Auto White Balance<br/>• Base64 JPEG Captures"]:::hardware
     end
 
-    subgraph Cloud_Bridge ["☁️ Cloud & Messaging Bridge"]
+    subgraph Cloud_Bridge ["Cloud & Messaging Bridge"]
         FB_REQ[("Firebase /requests<br/>(HTTPS SSL Store)")]:::cloud
         FB_QUEUE[("Firebase /queue<br/>(SSE Realtime Event)")]:::cloud
     end
 
-    subgraph Core_Engine ["🤖 LensLocalAPI Desktop Engine (.NET 10)"]
+    subgraph Core_Engine ["LensLocalAPI Desktop Engine (.NET 10)"]
         SSE_LISTEN["SSE Stream Listener<br/>(Non-blocking Channel)"]:::engine
         PLAYWRIGHT["Microsoft Playwright<br/>(Chromium Automation)"]:::engine
         LENS["Google Lens AI<br/>(Multimodal JSON Extraction)"]:::engine
         COLOR["Local HSV Color Classifier<br/>(RGB Hue Matrix)"]:::engine
     end
 
-    subgraph Presentation ["📱 Presentation Layer"]
+    subgraph Presentation ["Presentation Layer"]
         DESKTOP["WPF Desktop Dashboard<br/>(Realtime Logs & Preview)"]:::output
         MOBILE["Vercel Mobile PWA<br/>(REST Polling & Live Feed)"]:::output
     end
@@ -78,7 +78,7 @@ graph TD
 
 ---
 
-## 🔧 Setup & Configuration Guide (Step-by-Step)
+## Setup & Configuration Guide (Step-by-Step)
 
 ### 1. Firebase Project Setup
 1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
