@@ -37,19 +37,43 @@ Designed for speed, reliability, and zero-cost MVP product development.
 
 LensLocalAPI provides a seamless computer vision pipeline using a real-time Server-Sent Events (SSE) streaming model:
 
-```text
-ESP32-CAM (OV2640)
-       │
-       ▼
-Firebase Realtime DB  ──→  SSE Stream listener (/queue)
-       │
-       ▼
-LensLocalAPI C# Engine ──→  Playwright Google Lens & Local HSV Color Classifier
-       │
-     ┌─┴─┐
-     │   │
-     ▼   ▼
-   Result  Logs  ──→  Instant sync to Vercel Mobile App & Desktop UI
+```mermaid
+graph TD
+    classDef hardware fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff,font-weight:bold;
+    classDef cloud fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff,font-weight:bold;
+    classDef engine fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff,font-weight:bold;
+    classDef output fill:#18181b,stroke:#3f3f46,stroke-width:2px,color:#fff,font-weight:bold;
+
+    subgraph Hardware_Layer ["📷 Hardware Layer"]
+        ESP["ESP32-CAM (OV2640)<br/>• Hard Reset PWDN<br/>• Auto White Balance<br/>• Base64 JPEG Captures"]:::hardware
+    end
+
+    subgraph Cloud_Bridge ["☁️ Cloud & Messaging Bridge"]
+        FB_REQ[("Firebase /requests<br/>(HTTPS SSL Store)")]:::cloud
+        FB_QUEUE[("Firebase /queue<br/>(SSE Realtime Event)")]:::cloud
+    end
+
+    subgraph Core_Engine ["🤖 LensLocalAPI Desktop Engine (.NET 10)"]
+        SSE_LISTEN["SSE Stream Listener<br/>(Non-blocking Channel)"]:::engine
+        PLAYWRIGHT["Microsoft Playwright<br/>(Chromium Automation)"]:::engine
+        LENS["Google Lens AI<br/>(Multimodal JSON Extraction)"]:::engine
+        COLOR["Local HSV Color Classifier<br/>(RGB Hue Matrix)"]:::engine
+    end
+
+    subgraph Presentation ["📱 Presentation Layer"]
+        DESKTOP["WPF Desktop Dashboard<br/>(Realtime Logs & Preview)"]:::output
+        MOBILE["Vercel Mobile PWA<br/>(REST Polling & Live Feed)"]:::output
+    end
+
+    ESP -- "HTTPS PUT (Image Base64)" --> FB_REQ
+    ESP -- "HTTPS PUT (Notify Fila)" --> FB_QUEUE
+    FB_QUEUE -- "SSE Stream Push" --> SSE_LISTEN
+    SSE_LISTEN -- "Process Request" --> PLAYWRIGHT
+    PLAYWRIGHT -- "Upload & Multimodal Search" --> LENS
+    LENS -- "Extract Object JSON" --> COLOR
+    COLOR -- "Update /latest_result" --> FB_REQ
+    FB_REQ -- "Realtime Sync" --> DESKTOP
+    FB_REQ -- "REST Polling 2.5s" --> MOBILE
 ```
 
 ## Features
