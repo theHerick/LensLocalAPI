@@ -1,70 +1,104 @@
-# LensLocalAPI - Plataforma IoT de Visão Computacional para MVPs
+<div align="center">
 
-Uma solução completa, open-source e de custo zero para transformar módulos **ESP32-CAM** em um sistema de visão computacional alimentado por **Google Lens** e **Firebase Realtime Database**.
+<pre>
+    ██████╗ ███████╗███╗   ██╗███████╗██╗      ██████╗  ██████╗ █████╗ ██╗      █████╗ ██████╗ ██╗
+    ██╔══██╗██╔════╝████╗  ██║██╔════╝██║     ██╔═══██╗██╔════╝██╔══██╗██║     ██╔══██╗██╔══██╗██║
+    ██║  ██║█████╗  ██╔██╗ ██║███████╗██║     ██║   ██║██║     ███████║██║     ███████║██████╔╝██║
+    ██║  ██║██╔══╝  ██║╚██╗██║╚════██║██║     ██║   ██║██║     ██╔══██╗██║     ██╔══██╗██╔═══╝ ██║
+    ██████╔╝███████╗██║ ╚████║███████╗███████╗╚██████╔╝╚██████╗██║  ██║███████╗██║  ██║██║     ██║
+    ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
+</pre>
 
----
+<p><b>IoT Computer Vision Platform · Zero API Cost · Powered by Google Lens & Firebase</b></p>
 
-## 🚀 Arquitetura do Sistema
+<img src="https://img.shields.io/badge/Status-Online-brightgreen?logo=render" alt="Status" />
+<img src="https://img.shields.io/badge/Engine-Google_Lens-blue?logo=google" alt="Google Lens" />
+<img src="https://img.shields.io/badge/Framework-.NET_10_WPF-purple?logo=dotnet" alt=".NET 10" />
+<img src="https://img.shields.io/badge/Hardware-ESP32--CAM-orange?logo=espressif" alt="ESP32-CAM" />
+<img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
 
-```
-[ ESP32-CAM ] ──(HTTPS/Base64)──> [ Firebase Realtime DB ] <──(SSE Stream)──> [ LensLocalAPI C# Engine ]
-                                            │                                          │
-                                            ▼                                          ▼
-                                   [ Web Mobile App ]                       [ Google Lens Automation ]
-```
-
-### Componentes do Projeto:
-1. **ESP32-CAM Firmware (`/esp32cam_firmware`)**: Firmware em C++ com suporte a Auto White Balance, calibração de exposição, descarte de frames iniciais e reconexão HTTPS SSL.
-2. **C# Engine (`LensLocalAPI.csproj`)**: Aplicação desktop WPF em .NET 10 que escuta a fila do Firebase em tempo real via SSE e automatiza o Google Lens via Microsoft Playwright.
-3. **Web / Mobile App (`/web`)**: PWA responsivo pronto para deploy no Vercel com monitoramento em tempo real do último resultado.
-
----
-
-## 💻 Requisitos
-
-- **.NET 8.0 SDK** ou superior
-- **Arduino IDE** (com suporte a placas ESP32)
-- **Conta no Firebase** (Realtime Database configurado em modo livre de leitura/escrita)
+</div>
 
 ---
 
-## ⚙️ Configuração Inicial
+## What is LensLocalAPI?
 
-### 1. Firebase Realtime Database
-Crie um projeto no Firebase e copie a URL do seu Realtime Database (exemplo: `https://seu-projeto-default-rtdb.firebaseio.com`).
+**LensLocalAPI** is a professional, open-source IoT computer vision platform that turns an ultra-affordable ($4) ESP32-CAM module into an AI-powered object and color recognition engine.
 
-### 2. Firmware ESP32-CAM
-Abra a pasta `esp32cam_firmware` no Arduino IDE e configure suas credenciais:
-```cpp
-const char* WIFI_SSID     = "SUA_REDE_WIFI";
-const char* WIFI_PASSWORD = "SUA_SENHA_WIFI";
-const char* FIREBASE_URL  = "https://seu-projeto-default-rtdb.firebaseio.com";
-```
-Grave o firmware na sua placa ESP32-CAM.
+Stop paying expensive subscription fees for commercial Vision APIs. Capture photos on hardware, process them instantly through automated Google Lens multimodal search, and stream results to your mobile phone in real time.
 
-### 3. Aplicação Desktop (.NET)
-Edite o arquivo `appsettings.json` ou configure diretamente pela interface do aplicativo clicando em **Configurar Firebase**:
-```json
-{
-  "Firebase": {
-    "DatabaseUrl": "https://seu-projeto-default-rtdb.firebaseio.com",
-    "QueuePath": "queue",
-    "RequestsPath": "requests"
-  }
-}
+```text
+ESP32-CAM (.jpg) → LensLocalAPI → Firebase & Mobile App
 ```
 
----
+Designed for speed, reliability, and zero-cost MVP product development.
 
-## 🚀 Como Executar
+## How it Works
 
-Execute o script de 1 clique no Windows:
-```cmd
+LensLocalAPI provides a seamless computer vision pipeline using a real-time Server-Sent Events (SSE) streaming model:
+
+```text
+ESP32-CAM (OV2640)
+       │
+       ▼
+Firebase Realtime DB  ──→  SSE Stream listener (/queue)
+       │
+       ▼
+LensLocalAPI C# Engine ──→  Playwright Google Lens & Local HSV Color Classifier
+       │
+     ┌─┴─┐
+     │   │
+     ▼   ▼
+   Result  Logs  ──→  Instant sync to Vercel Mobile App & Desktop UI
+```
+
+## Features
+
+*   **Zero API Costs** — Unlimited visual recognition powered by Google Lens multimodal AI.
+*   **Local HSV Color Classification** — Local C# algorithm for instant Portuguese color name classification.
+*   **Realtime SSE Streaming** — Sub-second event triggers using Firebase Realtime Database.
+*   **Hardware Stability** — Hardened ESP32-CAM C++ firmware with Auto White Balance, AEC, and PWDN hardware resets.
+*   **Cross-Platform Mobile PWA** — Responsive Vercel-ready dashboard for tracking captures on any smartphone.
+*   **Customizable UI** — Built-in Firebase configuration manager with live latency and health indicators.
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| **Desktop Engine** | .NET 10 WPF, C# 12 |
+| **Browser Automation** | Microsoft Playwright, Chromium |
+| **Hardware Firmware** | ESP32-CAM (OV2640 C++), Arduino Core 3.x |
+| **Cloud & Database** | Firebase Realtime Database (SSE), Vercel |
+| **Frontend Web App** | HTML5, CSS3, ES6 Modules |
+
+## Deployment
+
+**LensLocalAPI** comes ready out of the box.
+
+```bash
+# To run locally on Windows:
 iniciar.bat
 ```
 
----
+**Required ESP32 Settings:**
+- **Board:** AI Thinker ESP32-CAM
+- **Flash Frequency:** 80MHz
+- **Partition Scheme:** Huge APP (3MB No OTA/1MB SPIFFS)
 
-## 📄 Licença
+## Project Structure
 
-Este projeto está licenciado sob a licença MIT. Sinta-se livre para utilizar em seus produtos e MVPs.
+```text
+LensLocalAPI/
+├── LensLocalAPI.csproj   # .NET 10 WPF project manifest
+├── ViewModels/           # MainViewModel & RelayCommand logic
+├── Views/                # MainWindow WPF dark UI & controls
+├── Services/             # GoogleLensService, FirebaseService, ColorAnalyzer
+├── Models/               # Data structures & config schemas
+├── esp32cam_firmware/    # ESP32-CAM C++ firmware sketch
+├── web/                  # Vercel-ready mobile dashboard
+└── iniciar.bat           # 1-click startup script
+```
+
+<div align="center">
+Made by Herick B.
+</div>
