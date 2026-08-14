@@ -76,6 +76,77 @@ graph TD
     FB_REQ -- "REST Polling 2.5s" --> MOBILE
 ```
 
+---
+
+## 🔧 Setup & Configuration Guide (Step-by-Step)
+
+### 1. Firebase Project Setup
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+2. In the left menu, navigate to **Build → Realtime Database** and click **Create Database**.
+3. Under the **Rules** tab, set public read/write access for testing:
+   ```json
+   {
+     "rules": {
+       ".read": true,
+       ".write": true
+     }
+   }
+   ```
+4. Copy your Realtime Database URL (e.g. `https://your-project-id-default-rtdb.firebaseio.com`).
+
+---
+
+### 2. ESP32-CAM Firmware Setup (`/esp32cam_firmware`)
+1. Open `esp32cam_firmware/esp32cam_firmware.ino` in Arduino IDE.
+2. Update lines 22-24 with your Wi-Fi network and Firebase Database URL:
+   ```cpp
+   const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+   const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+   const char* FIREBASE_URL  = "https://your-project-id-default-rtdb.firebaseio.com";
+   ```
+3. In Arduino IDE, select board **AI Thinker ESP32-CAM** and flash the sketch.
+
+---
+
+### 3. Desktop Application Setup (C# .NET WPF)
+You can configure your Firebase connection using **either** of the following methods:
+
+- **Method A (GUI):** Run `iniciar.bat`, click **Configurar Firebase** in the top header, paste your Database URL, and click **Salvar e Conectar**.
+- **Method B (`appsettings.json`):** Open `appsettings.json` and paste your Database URL:
+  ```json
+  {
+    "Firebase": {
+      "DatabaseUrl": "https://your-project-id-default-rtdb.firebaseio.com",
+      "QueuePath": "queue",
+      "RequestsPath": "requests"
+    }
+  }
+  ```
+
+---
+
+### 4. Deploying the Mobile Web App to Vercel (`/web`)
+
+To view live ESP32 recognition results on your smartphone:
+
+#### Option A: Vercel CLI (1-Click Command)
+```bash
+cd web
+npx vercel --prod
+```
+
+#### Option B: Vercel Dashboard (GitHub / Git Import)
+1. Open `web/index.html` and paste your Firebase Database URL in line 224:
+   ```javascript
+   const firebaseConfig = {
+       databaseURL: "https://your-project-id-default-rtdb.firebaseio.com"
+   };
+   ```
+2. Go to [Vercel Dashboard](https://vercel.com/new), import your repository, and set the Root Directory to `web`.
+3. Click **Deploy**. Your mobile dashboard will be live at `https://your-app.vercel.app`!
+
+---
+
 ## Features
 
 *   **Zero API Costs** — Unlimited visual recognition powered by Google Lens multimodal AI.
