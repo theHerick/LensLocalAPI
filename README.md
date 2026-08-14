@@ -1,199 +1,303 @@
-<div align="center">
+# LensLocalAPI
 
-<pre>
-    ██╗      ███████╗███╗   ██╗███████╗██╗      ██████╗  ██████╗ █████╗ ██╗      █████╗ ██████╗ ██╗
-    ██║      ██╔════╝████╗  ██║██╔════╝██║     ██╔═══██╗██╔════╝██╔══██╗██║     ██╔══██╗██╔══██╗██║
-    ██║      █████╗  ██╔██╗ ██║███████╗██║     ██║   ██║██║     ███████║██║     ███████║██████╔╝██║
-    ██║      ██╔══╝  ██║╚██╗██║╚════██║██║     ██║   ██║██║     ██╔══██╗██║     ██╔══██╗██╔═══╝ ██║
-    ███████╗ ███████╗██║ ╚████║███████╗███████╗╚██████╔╝╚██████╗██║  ██║███████╗██║  ██║██║     ██║
-    ╚══════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
-</pre>
+**Computer Vision Bridge for ESP32 & IoT Prototyping**
 
-<p><b>IoT Computer Vision Platform · Zero API Cost · Powered by Google Lens & Firebase</b></p>
+LensLocalAPI is an experimental computer vision bridge for resource-constrained devices such as ESP32-CAM. It lets embedded devices send images to a computer-based processing node and receive structured recognition results through Firebase, without running heavy models on the microcontroller.
 
-<img src="https://img.shields.io/badge/Status-Online-brightgreen?logo=render" alt="Status" />
-<img src="https://img.shields.io/badge/Engine-Google_Lens-blue?logo=google" alt="Google Lens" />
-<img src="https://img.shields.io/badge/Framework-.NET_10_WPF-purple?logo=dotnet" alt=".NET 10" />
-<img src="https://img.shields.io/badge/Hardware-ESP32--CAM-orange?logo=espressif" alt="ESP32-CAM" />
-<img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
-
-</div>
+The current experimental vision provider uses **Playwright + Chromium** to interact with the **Google Lens Web interface**.
 
 ---
 
-## What is LensLocalAPI?
+## Why this project exists
 
-**LensLocalAPI** is a professional, open-source IoT computer vision platform that turns an ultra-affordable ($4) ESP32-CAM module into an AI-powered object and color recognition engine.
+Microcontrollers are great for sensing and control, but modern vision models can be expensive in RAM/VRAM, setup effort, and runtime requirements.
 
-Stop paying expensive subscription fees for commercial Vision APIs. Capture photos on hardware, process them instantly through automated Google Lens multimodal search, and stream results to your mobile phone in real time.
+LensLocalAPI focuses on **low-friction MVP validation** for students, makers, researchers, and embedded developers who want to test visual features quickly.
+
+This project helps during early prototyping when you want to avoid:
+
+- heavy local AI stack setup on the microcontroller;
+- CUDA/GPU requirements for some workflows;
+- large model downloads and extra dependencies;
+- integrating a paid cloud vision API before validating the idea.
+
+> Local AI is still a valid approach when hardware and project constraints support it. LensLocalAPI currently prioritizes simplicity for early experiments.
+
+---
+
+## How it works
+
+Current implementation flow:
 
 ```text
-ESP32-CAM (.jpg) → LensLocalAPI → Firebase & Mobile App
-```
-
-Designed for speed, reliability, and zero-cost MVP product development.
-
-## How it Works
-
-LensLocalAPI provides a seamless computer vision pipeline using a real-time Server-Sent Events (SSE) streaming model:
-
-```mermaid
-graph TD
-    classDef hardware fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff,font-weight:bold;
-    classDef cloud fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff,font-weight:bold;
-    classDef engine fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff,font-weight:bold;
-    classDef output fill:#18181b,stroke:#3f3f46,stroke-width:2px,color:#fff,font-weight:bold;
-
-    subgraph Hardware_Layer ["Hardware Layer"]
-        ESP["ESP32-CAM (OV2640)<br/>• Hard Reset PWDN<br/>• Auto White Balance<br/>• Base64 JPEG Captures"]:::hardware
-    end
-
-    subgraph Cloud_Bridge ["Cloud & Messaging Bridge"]
-        FB_REQ[("Firebase /requests<br/>(HTTPS SSL Store)")]:::cloud
-        FB_QUEUE[("Firebase /queue<br/>(SSE Realtime Event)")]:::cloud
-    end
-
-    subgraph Core_Engine ["LensLocalAPI Desktop Engine (.NET 10)"]
-        SSE_LISTEN["SSE Stream Listener<br/>(Non-blocking Channel)"]:::engine
-        PLAYWRIGHT["Microsoft Playwright<br/>(Chromium Automation)"]:::engine
-        LENS["Google Lens AI<br/>(Multimodal JSON Extraction)"]:::engine
-        COLOR["Local HSV Color Classifier<br/>(RGB Hue Matrix)"]:::engine
-    end
-
-    subgraph Presentation ["Presentation Layer"]
-        DESKTOP["WPF Desktop Dashboard<br/>(Realtime Logs & Preview)"]:::output
-        MOBILE["Vercel Mobile PWA<br/>(REST Polling & Live Feed)"]:::output
-    end
-
-    ESP -- "HTTPS PUT (Image Base64)" --> FB_REQ
-    ESP -- "HTTPS PUT (Notify Fila)" --> FB_QUEUE
-    FB_QUEUE -- "SSE Stream Push" --> SSE_LISTEN
-    SSE_LISTEN -- "Process Request" --> PLAYWRIGHT
-    PLAYWRIGHT -- "Upload & Multimodal Search" --> LENS
-    LENS -- "Extract Object JSON" --> COLOR
-    COLOR -- "Update /latest_result" --> FB_REQ
-    FB_REQ -- "Realtime Sync" --> DESKTOP
-    FB_REQ -- "REST Polling 2.5s" --> MOBILE
+ESP32-CAM / Mobile Test Client
+        │
+        │ Image (Base64 JPEG)
+        ▼
+Firebase Realtime Database
+  - /requests/{id}
+  - /queue/{id}
+        │
+        │ SSE events from /queue
+        ▼
+LensLocalAPI (.NET WPF)
+  - FirebaseStreamService (SSE listener)
+  - VisionProcessor (queue + orchestration)
+        │
+        ├── Local preprocessing / dominant color (HSV-based)
+        │
+        └── Vision Provider (current)
+              Playwright + Chromium + Google Lens Web
+                        │
+                        ▼
+                 Structured VisionResult
+                        │
+                        ▼
+Firebase updates
+  - /requests/{id} (completed/error + result)
+  - /latest_result
+        │
+        ├── WPF dashboard (local app)
+        └── Web dashboard (polls /latest_result)
 ```
 
 ---
 
-## Setup & Configuration Guide (Step-by-Step)
+## Vision Provider concept
 
-### 1. Firebase Project Setup
-1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
-2. In the left menu, navigate to **Build → Realtime Database** and click **Create Database**.
-3. Under the **Rules** tab, set public read/write access for testing:
-   ```json
-   {
-     "rules": {
-       ".read": true,
-       ".write": true
-     }
-   }
-   ```
-4. Copy your Realtime Database URL (e.g. `https://your-project-id-default-rtdb.firebaseio.com`).
+LensLocalAPI is organized as a bridge:
 
----
+```text
+Device → LensLocalAPI → Vision Provider
+```
 
-### 2. ESP32-CAM Firmware Setup (`/esp32cam_firmware`)
-1. Open `esp32cam_firmware/esp32cam_firmware.ino` in Arduino IDE.
-2. Update lines 22-24 with your Wi-Fi network and Firebase Database URL:
-   ```cpp
-   const char* WIFI_SSID     = "YOUR_WIFI_SSID";
-   const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-   const char* FIREBASE_URL  = "https://your-project-id-default-rtdb.firebaseio.com";
-   ```
-3. In Arduino IDE, select board **AI Thinker ESP32-CAM** and flash the sketch.
+In the current codebase, recognition is already separated behind `IVisionRecognitionService` (`/home/runner/work/LensLocalAPI/LensLocalAPI/Vision/IVisionRecognitionService.cs`).
+
+- **Current provider (implemented):** Google Lens Web (browser automation)
+- **Possible future providers (not implemented yet):**
+  - Local model provider
+  - Official cloud vision providers
+  - OpenAI Vision / Gemini Vision
+  - Custom computer vision model
+
+These future providers are roadmap possibilities only.
 
 ---
 
-### 3. Desktop Application Setup (C# .NET WPF)
-You can configure your Firebase connection using **either** of the following methods:
+## Experimental Project
 
-- **Method A (GUI):** Run `iniciar.bat`, click **Configurar Firebase** in the top header, paste your Database URL, and click **Salvar e Conectar**.
-- **Method B (`appsettings.json`):** Open `appsettings.json` and paste your Database URL:
-  ```json
-  {
-    "Firebase": {
-      "DatabaseUrl": "https://your-project-id-default-rtdb.firebaseio.com",
-      "QueuePath": "queue",
-      "RequestsPath": "requests"
+LensLocalAPI is an **experimental** project intended mainly for:
+
+- prototyping;
+- education;
+- research;
+- MVP validation.
+
+It is **not recommended as production infrastructure**.
+
+Current behavior depends on Google Lens Web UI automation. If Google changes that interface or behavior, this integration may stop working.
+
+There is no guarantee of:
+
+- uptime;
+- stability;
+- compatibility over time;
+- deterministic latency.
+
+---
+
+## Google disclaimer
+
+LensLocalAPI is an independent and unofficial experimental project. It is not affiliated with, endorsed by, sponsored by, or supported by Google. Google Lens is a trademark/service of Google.
+
+The current experimental provider interacts with the publicly accessible Google Lens web interface through browser automation.
+
+This project is **not designed** to bypass CAPTCHAs, authentication mechanisms, rate limits, access controls, or other technical restrictions.
+
+---
+
+## Features (current)
+
+- ESP32-CAM request flow via Firebase Realtime Database
+- Event-driven processing using Firebase SSE (`/queue`)
+- Browser automation with Playwright + Chromium
+- Experimental Google Lens Web provider integration
+- Local dominant color analysis (HSV-based fallback)
+- Structured result payload (`object`, `color`, `description`, `rawResult`)
+- WPF desktop dashboard for status/log monitoring
+- Web dashboard (`/web`) for live result viewing and mobile test uploads
+- Decoupled device-to-processing architecture for IoT MVPs
+
+---
+
+## When should I use this?
+
+### Good fit
+
+- ESP32 / ESP32-CAM prototypes
+- university and academic projects
+- hackathons
+- proof-of-concepts
+- educational experiments
+- local IoT MVP validation
+
+### Not recommended
+
+- production systems
+- safety-critical applications
+- high-volume image processing
+- applications requiring guaranteed uptime
+- applications requiring guaranteed latency
+- commercial infrastructure dependent on Google Lens Web behavior
+
+---
+
+## Firebase Security
+
+For quick local tests, some users start with open rules. If you do this, treat it as:
+
+## DEVELOPMENT / LOCAL TESTING ONLY
+
+Open rules like below make your database publicly accessible and are unsafe for production:
+
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+```
+
+Production deployments should use Firebase Authentication and restrictive rules.
+
+Baseline safer example (adapt for your app):
+
+```json
+{
+  "rules": {
+    "requests": {
+      "$requestId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "queue": {
+      "$requestId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "latest_result": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
-  ```
+}
+```
+
+Security reminders:
+
+- open rules are for controlled prototyping only;
+- never store sensitive data in open test databases;
+- never publish private credentials/tokens;
+- never commit secrets.
 
 ---
 
-### 4. Deploying the Mobile Web App to Vercel (`/web`)
+## Setup
 
-To view live ESP32 recognition results on your smartphone:
+### 1) Configure Firebase
 
-#### Option A: Vercel CLI (1-Click Command)
-```bash
-cd web
-npx vercel --prod
+1. Create a Firebase Realtime Database project.
+2. Copy your database URL (example: `https://your-project-id-default-rtdb.firebaseio.com`).
+3. Choose your rules strategy:
+   - quick local testing (open rules, unsafe);
+   - authenticated restricted rules (recommended).
+
+### 2) Configure ESP32-CAM firmware
+
+Edit `/home/runner/work/LensLocalAPI/LensLocalAPI/esp32cam_firmware/esp32cam_firmware.ino`:
+
+```cpp
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* FIREBASE_URL  = "https://your-project-id-default-rtdb.firebaseio.com";
 ```
 
-#### Option B: Vercel Dashboard (GitHub / Git Import)
-1. Open `web/index.html` and paste your Firebase Database URL in line 224:
-   ```javascript
-   const firebaseConfig = {
-       databaseURL: "https://your-project-id-default-rtdb.firebaseio.com"
-   };
-   ```
-2. Go to [Vercel Dashboard](https://vercel.com/new), import your repository, and set the Root Directory to `web`.
-3. Click **Deploy**. Your mobile dashboard will be live at `https://your-app.vercel.app`!
+### 3) Configure desktop app
+
+Use either:
+
+- GUI settings in the WPF app (`iniciar.bat` → Configurar Firebase), or
+- `/home/runner/work/LensLocalAPI/LensLocalAPI/appsettings.json`.
+
+### 4) Optional web dashboard
+
+Configure Firebase web client settings in `/home/runner/work/LensLocalAPI/LensLocalAPI/web/index.html` and deploy `/web` (for example with Vercel).
 
 ---
 
-## Features
+## ESP32 / IoT MVP examples
 
-*   **Zero API Costs** — Unlimited visual recognition powered by Google Lens multimodal AI.
-*   **Local HSV Color Classification** — Local C# algorithm for instant Portuguese color name classification.
-*   **Realtime SSE Streaming** — Sub-second event triggers using Firebase Realtime Database.
-*   **Hardware Stability** — Hardened ESP32-CAM C++ firmware with Auto White Balance, AEC, and PWDN hardware resets.
-*   **Cross-Platform Mobile PWA** — Responsive Vercel-ready dashboard for tracking captures on any smartphone.
-*   **Customizable UI** — Built-in Firebase configuration manager with live latency and health indicators.
+Possible experimental use cases:
 
-## Tech Stack
+- object recognition experiments;
+- approximate color identification;
+- assistive-device prototypes;
+- home automation triggers;
+- visual classification proof-of-concepts;
+- smart sensor projects;
+- academic demonstrations.
 
-| Component | Technology |
-|---|---|
-| **Desktop Engine** | .NET 10 WPF, C# 12 |
-| **Browser Automation** | Microsoft Playwright, Chromium |
-| **Hardware Firmware** | ESP32-CAM (OV2640 C++), Arduino Core 3.x |
-| **Cloud & Database** | Firebase Realtime Database (SSE), Vercel |
-| **Frontend Web App** | HTML5, CSS3, ES6 Modules |
+Do not assume guaranteed accuracy for critical decisions.
 
-## Deployment
+---
 
-**LensLocalAPI** comes ready out of the box.
+## Limitations
 
-```bash
-# To run locally on Windows:
-iniciar.bat
-```
+- Depends on external web service behavior
+- Browser automation can break after UI changes
+- Latency is non-deterministic
+- Results can vary by image/context
+- No SLA
+- Not suitable for critical applications
+- Open Firebase rules are insecure outside controlled tests
+- Visual recognition can be incorrect
 
-**Required ESP32 Settings:**
-- **Board:** AI Thinker ESP32-CAM
-- **Flash Frequency:** 80MHz
-- **Partition Scheme:** Huge APP (3MB No OTA/1MB SPIFFS)
+---
 
-## Project Structure
+## Roadmap (proposed)
+
+- [ ] Strengthen provider abstraction boundaries in app services
+- [ ] Add a local vision provider option
+- [ ] Add official cloud API provider examples
+- [ ] Improve ESP32 examples and docs
+- [ ] Add Firebase Authentication example
+- [ ] Add Docker support
+- [ ] Improve structured response schema and confidence metadata
+
+---
+
+## Project structure
 
 ```text
 LensLocalAPI/
-├── LensLocalAPI.csproj   # .NET 10 WPF project manifest
-├── ViewModels/           # MainViewModel & RelayCommand logic
-├── Views/                # MainWindow WPF dark UI & controls
-├── Services/             # GoogleLensService, FirebaseService, ColorAnalyzer
-├── Models/               # Data structures & config schemas
-├── esp32cam_firmware/    # ESP32-CAM C++ firmware sketch
-├── web/                  # Vercel-ready mobile dashboard
-└── iniciar.bat           # 1-click startup script
+├── LensLocalAPI.csproj
+├── ViewModels/
+├── Views/
+├── Services/
+├── Vision/
+├── Models/
+├── esp32cam_firmware/
+├── web/
+└── iniciar.bat
 ```
 
-<div align="center">
+---
+
+## Authorship
+
+LensLocalAPI
+
 Made by Herick B.
-</div>
