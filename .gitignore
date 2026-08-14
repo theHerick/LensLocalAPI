@@ -1,0 +1,19 @@
+# Build & Binary Output
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Runtime Data & Temporary Files
+temp/
+debug/
+browser-profile/
+*.log
+
+# Environment & IDE
+.vs/
+.vscode/
+.idea/
+*.cache
