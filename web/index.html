@@ -74,7 +74,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 800;
             box-shadow: 0 4px 14px var(--accent-glow);
         }
@@ -316,6 +316,18 @@
             cursor: not-allowed;
             box-shadow: none;
         }
+
+        .btn-secondary {
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #A5B4FC;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -373,6 +385,10 @@
                 <div class="esp-description" id="espDesc">
                     Processado com sucesso.
                 </div>
+
+                <button class="btn-secondary" id="btnSpeakAgain">
+                    OUVIR DESCRIÇÃO EM VOZ ALTA NOVAMENTE
+                </button>
             </div>
         </div>
 
@@ -405,8 +421,9 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+    // INSIRA AS CONFIGURAÇÕES DO SEU PROJETO FIREBASE AQUI:
     const firebaseConfig = {
         apiKey: "YOUR_FIREBASE_API_KEY",
         authDomain: "YOUR_FIREBASE_PROJECT.firebaseapp.com",
@@ -425,6 +442,21 @@
     const tabLatestContent = document.getElementById('tabLatestContent');
     const tabCameraContent = document.getElementById('tabCameraContent');
     const btnManualRefresh = document.getElementById('btnManualRefresh');
+    const btnSpeakAgain = document.getElementById('btnSpeakAgain');
+
+    let currentSpeechText = "";
+    let lastProcessedRequestId = "";
+
+    // Sintetizador de Voz Nativo do Celular (Web Speech API)
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
 
     tabLatestBtn.addEventListener('click', () => {
         tabLatestBtn.className = 'tab-btn active';
@@ -440,33 +472,48 @@
         tabLatestContent.style.display = 'none';
     });
 
-    function renderResult(res, deviceId, timestamp) {
-        if (!res) return;
+    function renderResult(data) {
+        if (!data || !data.result) return;
+        const res = data.result;
+        const reqId = data.requestId || data.timestamp || '';
+
         document.getElementById('espLoadingText').style.display = 'none';
         document.getElementById('espResultDetails').style.display = 'flex';
 
-        document.getElementById('espObject').textContent = res.object || 'Objeto não identificado';
-        document.getElementById('espColor').textContent = (res.color || '—').toUpperCase();
-        document.getElementById('espDesc').textContent = res.description || res.rawResult || 'Processado com sucesso.';
-        document.getElementById('espDevice').textContent = 'Dispositivo: ' + (deviceId || 'esp32cam');
+        const objName = res.object || 'Objeto não identificado';
+        const colorName = (res.color || '—').toUpperCase();
+        const descText = res.description || res.rawResult || 'Processado com sucesso.';
+
+        document.getElementById('espObject').textContent = objName;
+        document.getElementById('espColor').textContent = colorName;
+        document.getElementById('espDesc').textContent = descText;
+        document.getElementById('espDevice').textContent = 'Dispositivo: ' + (data.deviceId || 'esp32cam');
         
         let dateStr = new Date().toLocaleTimeString();
-        if (timestamp) {
-            let ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+        if (data.timestamp) {
+            let ts = typeof data.timestamp === 'string' ? parseInt(data.timestamp, 10) : data.timestamp;
             if (ts > 2000000000) ts = Math.floor(ts / 1000);
             if (ts > 0) dateStr = new Date(ts * 1000).toLocaleTimeString();
         }
         document.getElementById('espTime').textContent = 'Horário: ' + dateStr;
+
+        // Falar em voz alta se for um novo resultado
+        if (reqId !== lastProcessedRequestId) {
+            lastProcessedRequestId = reqId;
+            currentSpeechText = `Objeto identificado: ${objName}. Cor: ${colorName}. ${descText}`;
+            speakText(currentSpeechText);
+        }
     }
 
     async function fetchLatestResultREST() {
+        if (firebaseConfig.databaseURL.includes("YOUR_FIREBASE")) return false;
         try {
             const url = `${firebaseConfig.databaseURL}/latest_result.json`;
             const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.result) {
-                    renderResult(data.result, data.deviceId, data.timestamp);
+                    renderResult(data);
                     return true;
                 }
             }
@@ -481,6 +528,12 @@
         btnManualRefresh.textContent = 'Buscando...';
         await fetchLatestResultREST();
         setTimeout(() => btnManualRefresh.textContent = 'Atualizar Resultado Agora', 1000);
+    });
+
+    btnSpeakAgain.addEventListener('click', () => {
+        if (currentSpeechText) {
+            speakText(currentSpeechText);
+        }
     });
 
     const cameraBox = document.getElementById('cameraBox');
