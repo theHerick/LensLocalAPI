@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LensLocalAPI - Monitor ESP32 &amp; Mobile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0B0F19;
+            --card-bg: rgba(23, 31, 51, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366F1;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+            --success-color: #10B981;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .tab-bar {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            padding: 4px;
+            border-radius: 14px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .live-tag {
+            font-size: 11px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success-color);
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 700;
+        }
+
+        .esp-result-display {
+            background: rgba(9, 13, 24, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .esp-object-title {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFFFFF, #A5B4FC);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            word-break: break-word;
+        }
+
+        .esp-badge-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-badge {
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #818CF8;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .device-badge {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .esp-description {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #CBD5E1;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .camera-box {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #060911;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .camera-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .camera-icon-bg {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366F1, #4F46E5);
+            color: white;
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo">
+            <div class="logo-icon">LENS</div>
+            <div class="logo-text">
+                <h1>LensLocalAPI</h1>
+                <span>ESP32-CAM Vision Gateway</span>
+            </div>
+        </div>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span id="firebaseStatusText">Firebase REST</span>
+        </div>
+    </header>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" id="tabLatestBtn">
+            ÚLTIMO RESULTADO
+        </button>
+        <button class="tab-btn" id="tabCameraBtn">
+            TESTAR CELULAR
+        </button>
+    </div>
+
+    <div class="card" id="tabLatestContent">
+        <div class="card-title">
+            <span style="display: flex; align-items: center; gap: 6px;">
+                RESULTADO DA ESP32-CAM
+            </span>
+            <span class="live-tag">AO VIVO</span>
+        </div>
+
+        <div class="esp-result-display" id="espDisplayBox">
+            <div style="text-align: center; color: var(--text-secondary); padding: 20px 10px;" id="espLoadingText">
+                <div style="font-weight: 700; color: #F8FAFC;">Aguardando foto da ESP32-CAM...</div>
+                <div style="font-size: 12px; margin-top: 4px;">Assim que a ESP32 enviar a foto, o resultado aparecerá aqui em tempo real.</div>
+            </div>
+
+            <div id="espResultDetails" style="display: none; flex-direction: column; gap: 14px;">
+                <div class="esp-object-title" id="espObject">Objeto</div>
+
+                <div class="esp-badge-row">
+                    <div class="color-badge">
+                        <span>Cor:</span>
+                        <span id="espColor">—</span>
+                    </div>
+                    <div class="device-badge" id="espDevice">Dispositivo: esp32cam_01</div>
+                    <div class="device-badge" id="espTime">Horário: --:--:--</div>
+                </div>
+
+                <div class="esp-description" id="espDesc">
+                    Processado com sucesso.
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" style="background: rgba(255,255,255,0.06); color: #94A3B8; padding: 10px; font-size: 12px;" id="btnManualRefresh">
+            Atualizar Resultado Agora
+        </button>
+    </div>
+
+    <div class="card" id="tabCameraContent" style="display: none;">
+        <div class="card-title">
+            Capturar Foto com Celular
+        </div>
+
+        <div class="camera-box" id="cameraBox">
+            <div class="camera-placeholder" id="placeholder">
+                <div class="camera-icon-bg">CAM</div>
+                <div style="font-weight: 600; color: #F8FAFC;">Tirar Foto ou Escolher Imagem</div>
+                <div style="font-size: 12px;">Toque aqui para abrir a câmera</div>
+            </div>
+            <img id="previewImg" class="preview-img" alt="Preview">
+        </div>
+
+        <input type="file" id="fileInput" accept="image/*" capture="environment">
+
+        <button class="btn btn-primary" id="btnSend" disabled>
+            ENVIAR FOTO AO FIREBASE
+        </button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "YOUR_FIREBASE_PROJECT.firebaseapp.com",
+        databaseURL: "https://YOUR_FIREBASE_PROJECT.firebaseio.com",
+        projectId: "YOUR_FIREBASE_PROJECT_ID",
+        storageBucket: "YOUR_FIREBASE_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const tabLatestBtn = document.getElementById('tabLatestBtn');
+    const tabCameraBtn = document.getElementById('tabCameraBtn');
+    const tabLatestContent = document.getElementById('tabLatestContent');
+    const tabCameraContent = document.getElementById('tabCameraContent');
+    const btnManualRefresh = document.getElementById('btnManualRefresh');
+
+    tabLatestBtn.addEventListener('click', () => {
+        tabLatestBtn.className = 'tab-btn active';
+        tabCameraBtn.className = 'tab-btn';
+        tabLatestContent.style.display = 'flex';
+        tabCameraContent.style.display = 'none';
+    });
+
+    tabCameraBtn.addEventListener('click', () => {
+        tabCameraBtn.className = 'tab-btn active';
+        tabLatestBtn.className = 'tab-btn';
+        tabCameraContent.style.display = 'flex';
+        tabLatestContent.style.display = 'none';
+    });
+
+    function renderResult(res, deviceId, timestamp) {
+        if (!res) return;
+        document.getElementById('espLoadingText').style.display = 'none';
+        document.getElementById('espResultDetails').style.display = 'flex';
+
+        document.getElementById('espObject').textContent = res.object || 'Objeto não identificado';
+        document.getElementById('espColor').textContent = (res.color || '—').toUpperCase();
+        document.getElementById('espDesc').textContent = res.description || res.rawResult || 'Processado com sucesso.';
+        document.getElementById('espDevice').textContent = 'Dispositivo: ' + (deviceId || 'esp32cam');
+        
+        let dateStr = new Date().toLocaleTimeString();
+        if (timestamp) {
+            let ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+            if (ts > 2000000000) ts = Math.floor(ts / 1000);
+            if (ts > 0) dateStr = new Date(ts * 1000).toLocaleTimeString();
+        }
+        document.getElementById('espTime').textContent = 'Horário: ' + dateStr;
+    }
+
+    async function fetchLatestResultREST() {
+        try {
+            const url = `${firebaseConfig.databaseURL}/latest_result.json`;
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.result) {
+                    renderResult(data.result, data.deviceId, data.timestamp);
+                    return true;
+                }
+            }
+        } catch (err) {}
+        return false;
+    }
+
+    fetchLatestResultREST();
+    setInterval(fetchLatestResultREST, 2500);
+
+    btnManualRefresh.addEventListener('click', async () => {
+        btnManualRefresh.textContent = 'Buscando...';
+        await fetchLatestResultREST();
+        setTimeout(() => btnManualRefresh.textContent = 'Atualizar Resultado Agora', 1000);
+    });
+
+    const cameraBox = document.getElementById('cameraBox');
+    const fileInput = document.getElementById('fileInput');
+    const placeholder = document.getElementById('placeholder');
+    const previewImg = document.getElementById('previewImg');
+    const btnSend = document.getElementById('btnSend');
+
+    let base64ImageData = null;
+
+    cameraBox.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxDim = 1000;
+                let w = img.width;
+                let h = img.height;
+
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+
+                base64ImageData = canvas.toDataURL('image/jpeg', 0.85);
+
+                previewImg.src = base64ImageData;
+                previewImg.style.display = 'block';
+                placeholder.style.display = 'none';
+
+                btnSend.disabled = false;
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    btnSend.addEventListener('click', async () => {
+        if (!base64ImageData) return;
+        btnSend.disabled = true;
+        btnSend.innerHTML = 'Enviando...';
+
+        const requestId = 'mob_' + Date.now().toString(36);
+        const { set } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+
+        try {
+            await set(ref(db, `requests/${requestId}`), {
+                deviceId: "mobile_web_simulator",
+                status: "pending",
+                timestamp: Math.floor(Date.now() / 1000),
+                image: base64ImageData
+            });
+
+            await set(ref(db, `queue/${requestId}`), true);
+
+            tabLatestBtn.click();
+            btnSend.disabled = false;
+            btnSend.innerHTML = 'ENVIAR FOTO AO FIREBASE';
+        } catch (err) {
+            alert('Erro: ' + err.message);
+            btnSend.disabled = false;
+            btnSend.innerHTML = 'ENVIAR FOTO AO FIREBASE';
+        }
+    });
+</script>
+</body>
+</html>
